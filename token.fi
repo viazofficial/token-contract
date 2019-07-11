@@ -43,6 +43,7 @@ entry enable(){
 }
 
 entry unlock(address lockedAddress){
+	assert(storage.enabled);
 	assert(storage.lockedAddresses.in(input.lockedAddress));
 	assert(NOW >= add(storage.enabledTime, storage.lockedAddresses.get(input.lockedAddress)));
 	storage.lockedAddresses.drop(input.lockedAddress)
