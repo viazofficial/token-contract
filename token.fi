@@ -1,0 +1,47 @@
+struct TokenData(
+	string name,
+	string symbol,
+	nat decimals
+);
+struct PassthroughData(
+	address from,
+	mutez amount,
+	bytes contractData
+);
+
+storage bmap[address=>mutez] balances;
+storage map[address=>int] lockedAddresses;
+storage TokenData data;
+storage address admin;
+storage timestamp enabledTime;
+storage bool enabled;
+
+entry transfer(address to, mutez amount, ?bytes contractData){
+	assert(storage.enabled || SENDER == storage.admin);
+	assert(!storage.lockedAddresses.in(SENDER));
+	assert(storage.balances.in(SENDER));
+	let mutez bal = storage.balances.get(SENDER);
+	assert(bal >= input.amount);
+	storage.balances.push(SENDER, sub(bal, input.amount));
+	bal = mutez 0;
+	if (storage.balances.in(input.to)){
+		bal = storage.balances.get(input.to);
+	}
+	storage.balances.push(input.to, add(bal, input.amount));
+	if (isset(input.contractData)){
+		transfer(input.to, mutez 0, new PassthroughData(SENDER, input.amount, to_some(input.contractData)));
+	}
+}
+
+entry enable(){
+	assert(!storage.enabled);
+	assert(SENDER == storage.admin);
+	storage.enabled = bool True;
+	storage.enabledTime = NOW;
+}
+
+entry unlock(address lockedAddress){
+	assert(storage.lockedAddresses.in(input.lockedAddress));
+	assert(NOW >= add(storage.enabledTime, storage.lockedAddresses.get(input.lockedAddress)));
+	storage.lockedAddresses.drop(input.lockedAddress)
+}
