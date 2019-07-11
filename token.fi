@@ -12,12 +12,13 @@ struct PassthroughData(
 storage bmap[address=>mutez] balances;
 storage map[address=>int] lockedAddresses;
 storage TokenData data;
-storage address admin;
+storage address ieoAdmin;
+storage address marketingAdmin;
 storage timestamp enabledTime;
 storage bool enabled;
 
 entry transfer(address to, mutez amount, ?bytes contractData){
-	assert(storage.enabled || SENDER == storage.admin);
+	assert(storage.enabled || SENDER == storage.ieoAdmin || SENDER == storage.marketingAdmin);
 	assert(!storage.lockedAddresses.in(SENDER));
 	assert(storage.balances.in(SENDER));
 	let mutez bal = storage.balances.get(SENDER);
@@ -35,7 +36,8 @@ entry transfer(address to, mutez amount, ?bytes contractData){
 
 entry enable(){
 	assert(!storage.enabled);
-	assert(SENDER == storage.admin);
+	assert(SENDER == storage.ieoAdmin);
+	storage.balances.drop(storage.ieoAdmin);
 	storage.enabled = bool True;
 	storage.enabledTime = NOW;
 }
