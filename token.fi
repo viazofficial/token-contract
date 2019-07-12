@@ -10,8 +10,8 @@ struct PassthroughData(
 );
 
 storage bmap[address=>mutez] balances;
-storage map[address=>int] lockedAddresses;
 storage TokenData data;
+storage map[address=>int] lockedAddresses;
 storage address ieoAdmin;
 storage address marketingAdmin;
 storage timestamp enabledTime;
@@ -47,4 +47,13 @@ entry unlock(address lockedAddress){
 	assert(storage.lockedAddresses.in(input.lockedAddress));
 	assert(NOW >= add(storage.enabledTime, storage.lockedAddresses.get(input.lockedAddress)));
 	storage.lockedAddresses.drop(input.lockedAddress)
+}
+
+entry burn(mutez amount){
+	assert(storage.enabled || SENDER == storage.ieoAdmin || SENDER == storage.marketingAdmin);
+	assert(!storage.lockedAddresses.in(SENDER));
+	assert(storage.balances.in(SENDER));
+	let mutez bal = storage.balances.get(SENDER);
+	assert(bal >= input.amount);
+	storage.balances.push(SENDER, sub(bal, input.amount));
 }
